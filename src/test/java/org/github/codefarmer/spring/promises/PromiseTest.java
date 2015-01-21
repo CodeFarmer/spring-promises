@@ -114,6 +114,8 @@ public class PromiseTest {
     pi.set(5);
 
     assertEquals(combined.get(), new Tuple2<>(5, "Hey"));
+    assertEquals(combined.get()._1(), Integer.valueOf(5));
+    assertEquals(combined.get()._2(), "Hey");
 
   }
 
