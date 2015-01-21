@@ -149,5 +149,30 @@ public class PromiseTest {
 
   }
 
+  @Test
+  public void promiseWorksAsListenableFutureCallback()
+      throws ExecutionException, InterruptedException {
+
+    ListenableFuture<String> lfs = new AsyncResult<>("Neep");
+    Promise<String> ps = new Promise<>();
+
+    lfs.addCallback(ps);
+
+    assertEquals(ps.get(), "Neep");
+
+  }
+
+  @Test
+  public void PromisesChain()
+      throws ExecutionException, InterruptedException {
+
+    Promise<String> ps0 = new Promise<>();
+    Promise<String> ps1 = new Promise<>(ps0);
+
+    ps0.set("Neep");
+    assertEquals(ps1.get(), "Neep");
+
+  }
+
 
 }

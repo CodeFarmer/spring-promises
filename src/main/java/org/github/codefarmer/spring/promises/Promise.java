@@ -15,11 +15,11 @@ import java.util.function.Function;
  * CompletableFuture class in Spring terms (and with less silly names).
  *
  * Actually what everybody wants is Scala futures, but importing the entire Scala library feels a
- * buit poor, and besides this was interesting.
+ * bit poor, and besides this was interesting.
  */
 public class Promise<A>
   extends SettableListenableFuture<A>
-  implements MonadicListenableFuture<A>
+  implements MonadicListenableFuture<A>, ListenableFutureCallback<A>
 {
 
   static class JoinedPromise<A, B>
@@ -59,6 +59,15 @@ public class Promise<A>
       addLatchedListener(b, lfb);
     }
 
+  }
+
+  public Promise() {
+    super();
+  }
+
+  public Promise(ListenableFuture<A> other) {
+    super();
+    other.addCallback(this);
   }
 
   @Override
@@ -140,4 +149,17 @@ public class Promise<A>
     return rescued;
 
   }
+
+  // ListenableFutureCallback methods
+
+  @Override
+  public void onFailure(Throwable throwable) {
+    setException(throwable);
+  }
+
+  @Override
+  public void onSuccess(A o) {
+    set(o);
+  }
+
 }
