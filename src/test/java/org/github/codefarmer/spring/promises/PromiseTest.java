@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
+import org.springframework.web.client.AsyncRestTemplate;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -163,7 +164,7 @@ public class PromiseTest {
   }
 
   @Test
-  public void PromisesChain()
+  public void promisesChain()
       throws ExecutionException, InterruptedException {
 
     Promise<String> ps0 = new Promise<>();
@@ -173,6 +174,5 @@ public class PromiseTest {
     assertEquals(ps1.get(), "Neep");
 
   }
-
 
 }
