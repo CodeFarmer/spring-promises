@@ -19,7 +19,7 @@ import java.util.function.Function;
  */
 public class Promise<A>
   extends SettableListenableFuture<A>
-  implements MonadicListenableFuture<A>, ListenableFutureCallback<A>
+  implements MappableListenableFuture<A>, ListenableFutureCallback<A>
 {
 
   static class JoinedPromise<A, B>

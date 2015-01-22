@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <name>CodeFarmer spring-promises</name>
-  <description>Glue code allowing Spring Futures to me mapped, flatMapped, joined and other convenient things.</description>
+  <description>Glue code allowing Spring Futures to be mapped, flatMapped, joined and other convenient things.</description>
   <url>https://github.com/CodeFarmer/spring-promises</url>
 
   <developers>
