@@ -7,6 +7,8 @@ import org.springframework.util.concurrent.ListenableFutureCallback;
 import org.springframework.web.client.AsyncRestTemplate;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.*;
@@ -147,6 +149,36 @@ public class PromiseTest {
 
     ps.setException(new NullPointerException());
     assertEquals("Ahoy me hearties", rescued.get());
+
+  }
+
+  @Test
+  public void rescueSuccessfullyReturnsValueOnSuccess()
+      throws ExecutionException, InterruptedException, TimeoutException {
+
+    Promise<String> ps = new Promise<>();
+    Promise<String> rescued = ps.rescue(t -> "Ahoy me hearties");
+
+    ps.set("Foo");
+    assertTrue(rescued.isDone());
+    assertEquals("Foo", rescued.get());
+
+  }
+
+  static Integer throwNullPointer(String s) {
+    throw new NullPointerException();
+  }
+
+  @Test
+  public void rescueofMappedSuccessfullyReturnsValue() throws ExecutionException, InterruptedException {
+
+    Promise<String> ps = new Promise<>();
+    Promise<Integer> pi = ps.map(PromiseTest::throwNullPointer);
+
+    Promise<Integer> rescued = pi.rescue(t -> 5);
+
+    ps.setException(new NullPointerException());
+    assertEquals(new Integer(5), rescued.get());
 
   }
 

@@ -142,7 +142,7 @@ public class Promise<A>
 
       @Override
       public void onSuccess(A a) {
-        set(a);
+        rescued.set(a);
       }
     });
 
