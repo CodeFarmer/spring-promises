@@ -207,4 +207,13 @@ public class PromiseTest {
 
   }
 
+  @Test
+  public void mapAfterSetStillWorks() throws ExecutionException, InterruptedException {
+    Promise<Integer> pi = new Promise<>();
+    pi.set(6);
+
+    MappableListenableFuture<String> ps = pi.map(Object::toString);
+    assertEquals(ps.get(), "6");
+  }
+
 }
