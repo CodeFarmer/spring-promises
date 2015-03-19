@@ -4,12 +4,11 @@ import org.junit.Test;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
-import org.springframework.web.client.AsyncRestTemplate;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import static org.junit.Assert.*;
 
@@ -168,6 +167,9 @@ public class PromiseTest {
   static Integer throwNullPointer(String s) {
     throw new NullPointerException();
   }
+  static MappableListenableFuture<Integer> throwNullPointerFlat(String s) {
+    throw new NullPointerException();
+  }
 
   @Test
   public void rescueofMappedSuccessfullyReturnsValue() throws ExecutionException, InterruptedException {
@@ -209,11 +211,85 @@ public class PromiseTest {
 
   @Test
   public void mapAfterSetStillWorks() throws ExecutionException, InterruptedException {
+
     Promise<Integer> pi = new Promise<>();
     pi.set(6);
 
     MappableListenableFuture<String> ps = pi.map(Object::toString);
     assertEquals(ps.get(), "6");
+
   }
+
+  @Test
+  public void mapAfterSetExceptionStillWorks() throws ExecutionException, InterruptedException {
+
+    Promise<Integer> pi = new Promise<>();
+    pi.setException(new RuntimeException("phooey"));
+
+    MappableListenableFuture<String> ps = pi.map(Object::toString);
+
+  }
+
+  @Test
+  public void mapAfterExceptionAlreadyThrownWorks() throws ExecutionException, InterruptedException {
+
+    Promise<String> ps = new Promise<>();
+    ps.set("4");
+
+    MappableListenableFuture<Integer> pi = ps.map(PromiseTest::throwNullPointer);
+
+    try {
+      pi.get();
+      fail("get() should result in the NPE getting thrown in the mapping function");
+    }
+    catch (ExecutionException ee) {
+      assertTrue("Thrown exception in map() should wrap the already-thrown exception that caused it to fire", ee.getCause() instanceof NullPointerException);
+    }
+
+  }
+
+  @Test
+  public void flatMapAfterExceptionAlreadyThrownWorks() throws ExecutionException, InterruptedException {
+
+    Promise<String> ps = new Promise<String>();
+    ps.set("4");
+
+    MappableListenableFuture<Integer> pi = ps.flatMap(PromiseTest::throwNullPointerFlat);
+
+    try {
+      pi.get();
+      fail("get() should result in the NPE getting thrown in the mapping function");
+    }
+    catch (ExecutionException ee) {
+      assertTrue("Thrown exception in flatMap() should wrap the already-thrown exception that caused it to fire", ee.getCause() instanceof NullPointerException);
+    }
+
+  }
+
+  @Test
+  public void rescueAfterExceptionAlreadyThrownWorks() throws ExecutionException, InterruptedException {
+
+    Promise<String> ps = new Promise<String>();
+    ps.setException(new NullPointerException("Hey!"));
+
+    MappableListenableFuture<String> ps2 = ps.rescue(new Function<Throwable, String>() {
+      @Override
+      public String apply(Throwable throwable) {
+        throw new RuntimeException(throwable);
+      }
+    });
+
+    try {
+      ps.get();
+      fail("get() should result in the NPE getting thrown in the rescuing function");
+    }
+    catch (ExecutionException ee) {
+      assertTrue("Thrown exception in rescue() should wrap the already-thrown exception that caused it to fire", ee.getCause() instanceof NullPointerException);
+    }
+
+  }
+
+
+
 
 }

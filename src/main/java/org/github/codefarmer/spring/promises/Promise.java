@@ -75,18 +75,25 @@ public class Promise<A>
 
     final Promise<B> mappedPromise = new Promise<>();
 
-    addCallback(new ListenableFutureCallback<A>() {
-      @Override
-      public void onFailure(Throwable throwable) {
-        mappedPromise.setException(throwable);
-      }
+    try {
 
-      @Override
-      public void onSuccess(A a) {
-        // Awesomely, if f throws an exception, the calling-back code will pass it to onFailure :)
-        mappedPromise.set(f.apply(a));
-      }
-    });
+      addCallback(new ListenableFutureCallback<A>() {
+        @Override
+        public void onFailure(Throwable throwable) {
+          mappedPromise.setException(throwable);
+        }
+
+        @Override
+        public void onSuccess(A a) {
+          // Awesomely, if f throws an exception, the calling-back code will pass it to onFailure :)
+          mappedPromise.set(f.apply(a));
+        }
+      });
+
+    }
+    catch (Exception e) { // this can happen due to the mechanics of Spring's CallbackListenerRegistry
+      mappedPromise.setException(e);
+    }
 
     return mappedPromise;
 
@@ -97,28 +104,35 @@ public class Promise<A>
 
     final Promise<B> flatMappedPromise = new Promise<>();
 
-    addCallback(new ListenableFutureCallback<A>() {
-      @Override
-      public void onFailure(Throwable throwable) {
-        flatMappedPromise.setException(throwable);
-      }
+    try {
 
-      @Override
-      public void onSuccess(A a) {
+      addCallback(new ListenableFutureCallback<A>() {
+        @Override
+        public void onFailure(Throwable throwable) {
+          flatMappedPromise.setException(throwable);
+        }
 
-        f.apply(a).addCallback(new ListenableFutureCallback<B>() {
-          @Override
-          public void onFailure(Throwable throwable) {
-            flatMappedPromise.setException(throwable);
-          }
+        @Override
+        public void onSuccess(A a) {
 
-          @Override
-          public void onSuccess(B b) {
-            flatMappedPromise.set(b);
-          }
-        });
-      }
-    });
+          f.apply(a).addCallback(new ListenableFutureCallback<B>() {
+            @Override
+            public void onFailure(Throwable throwable) {
+              flatMappedPromise.setException(throwable);
+            }
+
+            @Override
+            public void onSuccess(B b) {
+              flatMappedPromise.set(b);
+            }
+          });
+        }
+      });
+
+    }
+    catch (Exception e) { // this can happen due to the mechanics of Spring's CallbackListenerRegistry
+      flatMappedPromise.setException(e);
+    }
 
     return flatMappedPromise;
 
@@ -134,17 +148,24 @@ public class Promise<A>
 
     final Promise<A> rescued = new Promise<>();
 
-    addCallback(new ListenableFutureCallback<A>() {
-      @Override
-      public void onFailure(Throwable throwable) {
-        rescued.set(f.apply(throwable));
-      }
+    try {
 
-      @Override
-      public void onSuccess(A a) {
-        rescued.set(a);
-      }
-    });
+      addCallback(new ListenableFutureCallback<A>() {
+        @Override
+        public void onFailure(Throwable throwable) {
+          rescued.set(f.apply(throwable));
+        }
+
+        @Override
+        public void onSuccess(A a) {
+          rescued.set(a);
+        }
+      });
+
+    }
+    catch (Exception e) { // this can happen due to the mechanics of Spring's CallbackListenerRegistry
+      rescued.setException(e);
+    }
 
     return rescued;
 
