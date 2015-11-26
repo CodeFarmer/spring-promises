@@ -153,7 +153,12 @@ public class Promise<A>
       addCallback(new ListenableFutureCallback<A>() {
         @Override
         public void onFailure(Throwable throwable) {
-          rescued.set(f.apply(throwable));
+          try {
+            rescued.set(f.apply(throwable));
+          }
+          catch (Exception e) {
+            rescued.setException(e);
+          }
         }
 
         @Override

@@ -10,7 +10,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Created by joelgluth on 19/01/2015.
@@ -26,7 +28,6 @@ public class PromiseTest {
 
     pi.set(4);
     assertTrue(ps.get().equals("4"));
-
   }
 
   @Test
@@ -48,7 +49,6 @@ public class PromiseTest {
     });
 
     pi.set(4);
-
   }
 
   @Test
@@ -63,14 +63,13 @@ public class PromiseTest {
     try {
       ps.get();
       fail("Get on a Promise that has had its map() throw an exception should fail");
+    } catch (Exception e) {
     }
-    catch (Exception e) {
-    }
-
   }
+
   /**
-   * This test exists to make sure that even though an AsyncResult (effectively a constant Future)
-   * has listeners added after its result is set on construction, they still get fired when added.
+   * This test exists to make sure that even though an AsyncResult (effectively a constant Future) has listeners added
+   * after its result is set on construction, they still get fired when added.
    */
   @Test
   public void asyncResultFiresListeners() {
@@ -91,7 +90,6 @@ public class PromiseTest {
     });
 
     assertTrue(shouldBeSet.get());
-
   }
 
   @Test
@@ -102,9 +100,7 @@ public class PromiseTest {
 
     pi.set(4);
     assertTrue("4".equals(ps.get()));
-
   }
-
 
   @Test
   public void joinWorksInSimpleCase() throws ExecutionException, InterruptedException {
@@ -118,9 +114,7 @@ public class PromiseTest {
     assertEquals(combined.get(), new Tuple2<>(5, "Hey"));
     assertEquals(combined.get()._1(), Integer.valueOf(5));
     assertEquals(combined.get()._2(), "Hey");
-
   }
-
 
   @Test
   public void setExceptionWithoutRescueThrows() throws ExecutionException, InterruptedException {
@@ -131,13 +125,11 @@ public class PromiseTest {
     try {
       pb.get();
       fail("get() Should have thrown an exception");
-    }
-    catch (ExecutionException ie) {
+    } catch (ExecutionException ie) {
       if (!(ie.getCause() instanceof IllegalStateException)) {
         fail("get() should have thrown ExecutionException wrapping the IllegalStateException from setException()");
       }
     }
-
   }
 
   @Test
@@ -148,7 +140,6 @@ public class PromiseTest {
 
     ps.setException(new NullPointerException());
     assertEquals("Ahoy me hearties", rescued.get());
-
   }
 
   @Test
@@ -161,12 +152,12 @@ public class PromiseTest {
     ps.set("Foo");
     assertTrue(rescued.isDone());
     assertEquals("Foo", rescued.get());
-
   }
 
   static Integer throwNullPointer(String s) {
     throw new NullPointerException();
   }
+
   static MappableListenableFuture<Integer> throwNullPointerFlat(String s) {
     throw new NullPointerException();
   }
@@ -181,7 +172,6 @@ public class PromiseTest {
 
     ps.setException(new NullPointerException());
     assertEquals(new Integer(5), rescued.get());
-
   }
 
   @Test
@@ -194,7 +184,6 @@ public class PromiseTest {
     lfs.addCallback(ps);
 
     assertEquals(ps.get(), "Neep");
-
   }
 
   @Test
@@ -206,7 +195,6 @@ public class PromiseTest {
 
     ps0.set("Neep");
     assertEquals(ps1.get(), "Neep");
-
   }
 
   @Test
@@ -217,7 +205,6 @@ public class PromiseTest {
 
     MappableListenableFuture<String> ps = pi.map(Object::toString);
     assertEquals(ps.get(), "6");
-
   }
 
   @Test
@@ -227,7 +214,6 @@ public class PromiseTest {
     pi.setException(new RuntimeException("phooey"));
 
     MappableListenableFuture<String> ps = pi.map(Object::toString);
-
   }
 
   @Test
@@ -241,29 +227,31 @@ public class PromiseTest {
     try {
       pi.get();
       fail("get() should result in the NPE getting thrown in the mapping function");
+    } catch (ExecutionException ee) {
+      assertTrue("Thrown exception in map() should wrap the already-thrown exception that caused it to fire",
+          ee.getCause() instanceof NullPointerException);
     }
-    catch (ExecutionException ee) {
-      assertTrue("Thrown exception in map() should wrap the already-thrown exception that caused it to fire", ee.getCause() instanceof NullPointerException);
-    }
-
   }
 
   @Test
   public void flatMapAfterExceptionAlreadyThrownWorks() throws ExecutionException, InterruptedException {
 
     Promise<String> ps = new Promise<String>();
-    ps.set("4");
+    ps.setException(new NullPointerException("foo"));
 
-    MappableListenableFuture<Integer> pi = ps.flatMap(PromiseTest::throwNullPointerFlat);
+    MappableListenableFuture<Integer> pi = ps.flatMap(s -> {
+      Promise<Integer> p = new Promise<>();
+      p.onSuccess(Integer.valueOf(s));
+      return p;
+    });
 
     try {
       pi.get();
-      fail("get() should result in the NPE getting thrown in the mapping function");
+      fail("get() should result in the NPE getting thrown before the mapping function");
+    } catch (ExecutionException ee) {
+      assertTrue("Thrown exception in flatMap() should wrap the already-thrown exception that caused it to fire",
+          ee.getCause() instanceof NullPointerException);
     }
-    catch (ExecutionException ee) {
-      assertTrue("Thrown exception in flatMap() should wrap the already-thrown exception that caused it to fire", ee.getCause() instanceof NullPointerException);
-    }
-
   }
 
   @Test
@@ -280,16 +268,31 @@ public class PromiseTest {
     });
 
     try {
-      ps.get();
+      ps2.get();
       fail("get() should result in the NPE getting thrown in the rescuing function");
+    } catch (ExecutionException ee) {
+      assertEquals("Thrown exception in rescue() should be wrapped and thrown by the ExecutionException",
+          RuntimeException.class, ee.getCause().getClass());
     }
-    catch (ExecutionException ee) {
-      assertTrue("Thrown exception in rescue() should wrap the already-thrown exception that caused it to fire", ee.getCause() instanceof NullPointerException);
-    }
-
   }
 
+  @Test
+  public void runtimeExceptionDuringRescueGetsPropagated() throws InterruptedException {
 
+    Promise<String> ps1 = new Promise<>();
 
+    MappableListenableFuture<String> ps1_1 = ps1.rescue(t -> {
+      throw new RuntimeException(t);
+    });
 
+    ps1.setException(new NullPointerException("Hey!"));
+
+    try {
+      ps1_1.get();
+      fail("get() should result in the NPE getting thrown in the rescuing function");
+    } catch (ExecutionException ee) {
+      assertEquals("Thrown exception in rescue() should be wrapped and thrown by the ExecutionException",
+          RuntimeException.class, ee.getCause().getClass());
+    }
+  }
 }
