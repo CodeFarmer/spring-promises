@@ -17,7 +17,7 @@
 
   <groupId>org.github.codefarmer</groupId>
   <artifactId>spring-promises</artifactId>
-  <version>1.0.4-SNAPSHOT</version>
+  <version>1.0.4</version>
   <packaging>jar</packaging>
 
   <dependencies>
