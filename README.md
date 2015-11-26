@@ -11,7 +11,7 @@ method references.
     <dependency>
         <groupId>com.github.codefarmer</groupId>
         <artifactId>spring-promises</artifactId>
-        <version>1.0.3</version>
+        <version>1.0.4</version>
     </dependency>
 
 ## Quick start
