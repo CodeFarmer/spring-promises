@@ -6,6 +6,7 @@ import org.springframework.util.concurrent.SettableListenableFuture;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -19,7 +20,7 @@ import java.util.function.Function;
  */
 public class Promise<A>
   extends SettableListenableFuture<A>
-  implements MappableListenableFuture<A>, ListenableFutureCallback<A>
+  implements MappingFuture<A>, ListenableFutureCallback<A>
 {
 
   static class JoinedPromise<A, B>
@@ -141,6 +142,12 @@ public class Promise<A>
   @Override
   public <B> Promise<Tuple2<A, B>> join(ListenableFuture<B> bf) {
     return new JoinedPromise<>(this, bf);
+  }
+
+  @Override
+  // I actually feel like join() should be implemented in terms of joinWith(), but it was written first :P
+  public <B, C> MappingFuture<C> joinWith(ListenableFuture<B> b, BiFunction<A, B, C> f) {
+    return join(b).map(t -> f.apply(t._1(), t._2()));
   }
 
   @Override

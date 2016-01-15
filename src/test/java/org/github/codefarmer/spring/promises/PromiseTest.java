@@ -158,10 +158,6 @@ public class PromiseTest {
     throw new NullPointerException();
   }
 
-  static MappableListenableFuture<Integer> throwNullPointerFlat(String s) {
-    throw new NullPointerException();
-  }
-
   @Test
   public void rescueofMappedSuccessfullyReturnsValue() throws ExecutionException, InterruptedException {
 
@@ -203,17 +199,17 @@ public class PromiseTest {
     Promise<Integer> pi = new Promise<>();
     pi.set(6);
 
-    MappableListenableFuture<String> ps = pi.map(Object::toString);
+    MappingFuture<String> ps = pi.map(Object::toString);
     assertEquals(ps.get(), "6");
   }
 
   @Test
-  public void mapAfterSetExceptionStillWorks() throws ExecutionException, InterruptedException {
+  public void mapAfterSetExceptionDoesntThrowException() throws ExecutionException, InterruptedException {
 
     Promise<Integer> pi = new Promise<>();
     pi.setException(new RuntimeException("phooey"));
 
-    MappableListenableFuture<String> ps = pi.map(Object::toString);
+    MappingFuture<String> ps = pi.map(Object::toString);
   }
 
   @Test
@@ -222,7 +218,7 @@ public class PromiseTest {
     Promise<String> ps = new Promise<>();
     ps.set("4");
 
-    MappableListenableFuture<Integer> pi = ps.map(PromiseTest::throwNullPointer);
+    MappingFuture<Integer> pi = ps.map(PromiseTest::throwNullPointer);
 
     try {
       pi.get();
@@ -239,7 +235,7 @@ public class PromiseTest {
     Promise<String> ps = new Promise<String>();
     ps.setException(new NullPointerException("foo"));
 
-    MappableListenableFuture<Integer> pi = ps.flatMap(s -> {
+    MappingFuture<Integer> pi = ps.flatMap(s -> {
       Promise<Integer> p = new Promise<>();
       p.onSuccess(Integer.valueOf(s));
       return p;
@@ -260,7 +256,7 @@ public class PromiseTest {
     Promise<String> ps = new Promise<String>();
     ps.setException(new NullPointerException("Hey!"));
 
-    MappableListenableFuture<String> ps2 = ps.rescue(new Function<Throwable, String>() {
+    MappingFuture<String> ps2 = ps.rescue(new Function<Throwable, String>() {
       @Override
       public String apply(Throwable throwable) {
         throw new RuntimeException(throwable);
@@ -281,7 +277,7 @@ public class PromiseTest {
 
     Promise<String> ps1 = new Promise<>();
 
-    MappableListenableFuture<String> ps1_1 = ps1.rescue(t -> {
+    MappingFuture<String> ps1_1 = ps1.rescue(t -> {
       throw new RuntimeException(t);
     });
 
@@ -294,5 +290,31 @@ public class PromiseTest {
       assertEquals("Thrown exception in rescue() should be wrapped and thrown by the ExecutionException",
           RuntimeException.class, ee.getCause().getClass());
     }
+  }
+
+  @Test
+  public void joinWithTransformsCorrectly() throws ExecutionException, InterruptedException {
+    ListenableFuture<Integer> i0 = new AsyncResult<>(1);
+    MappingFuture<Integer> i1 = new Promise<>(new AsyncResult<>(2));
+
+    MappingFuture result = i1.joinWith(i0, (x, y) -> x + y);
+    assertEquals("Result of a joinWith() future should be the result of the supplied function", result.get(), 3);
+  }
+
+  @Test
+  public void exceptionInJoinWithFunctionPropagates() throws ExecutionException, InterruptedException {
+    ListenableFuture<Integer> i0 = new AsyncResult<>(1);
+    MappingFuture<Integer> i1 = new Promise<>(new AsyncResult<>(2));
+
+    MappingFuture result = i1.joinWith(i0, (x, y) -> { throw new RuntimeException("" + x + y); });
+    try {
+      result.get();
+    }
+    catch (ExecutionException ee) {
+      assertEquals("Thrown exception in rescue() should be wrapped and thrown by the ExecutionException",
+          RuntimeException.class, ee.getCause().getClass());
+      assertEquals(ee.getCause().getMessage(), "21");
+    }
+
   }
 }
