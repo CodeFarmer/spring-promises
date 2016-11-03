@@ -6,6 +6,10 @@ Very similar to parts of Play (for Java)'s F library, allowing Promises to wrap
 other, less tractable Futures, but designed to be used with Java 8 lambdas and
 method references.
 
+## NOTE with recent versions of Spring, this library is OBSOLETE and no longer necessary for most people.
+
+Spring now supports Java 8's CompletableFuture as a return type for various things (including @ResponseBody annotated controller methods). Since CompletableFuture has exactly the sematics of the Promise object (although under different names), the usefulness of this library is now limited to people who either can't use Java 8, or are stuck on Spring 3.6 or so (I haven't gone back to see exactly when the change occurred).
+
 ## Maven
 
     <dependency>
